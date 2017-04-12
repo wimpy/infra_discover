@@ -8,6 +8,5 @@ Ansible role to search for VPC, subnets and security groups tagged with specific
   connection: local
   roles:
     - wimpy.infra_discover
-
 ```
 
