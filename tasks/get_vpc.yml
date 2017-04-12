@@ -1,0 +1,9 @@
+---
+
+- ec2_vpc_net_facts:
+    filters:
+      "tag:{{ wimpy_discover_tag_key }}": "{{ wimpy_discover_tag_value }}"
+  register: wimpy_vpc_facts
+
+- set_fact:
+    wimpy_aws_vpc_id: "{{ wimpy_vpc_facts.results|map(attribute='vpcs.0.id')|list }}"

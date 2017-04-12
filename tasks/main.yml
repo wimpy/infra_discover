@@ -1,0 +1,10 @@
+---
+
+- include: get_vpc.yml
+  when: wimpy_aws_vpc_id is not defined
+
+- include: get_subnets.yml
+  when: wimpy_vpc_subnets is not defined
+
+- include: get_security_groups.yml
+  when: wimpy_aws_elb_security_groups is not defined

@@ -1,0 +1,11 @@
+---
+
+- ec2_group_facts:
+    filters:
+      "tag:Managed": "Wimpy"
+      vpc-id: "{{ wimpy_aws_vpc_id }}"
+  register: wimpy_security_groups_facts
+
+- set_fact:
+    wimpy_aws_elb_security_groups: "{{ wimpy_security_groups_facts.results|map(attribute='security_groups.0.id')|list }}"
+    wimpy_aws_lc_security_groups: "{{ wimpy_security_groups_facts.results|map(attribute='security_groups.0.id')|list }}"

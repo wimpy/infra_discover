@@ -1,0 +1,10 @@
+---
+
+- ec2_vpc_subnet_facts:
+    filters:
+      "tag:Managed": "Wimpy"
+      vpc-id: "{{ wimpy_aws_vpc_id }}"
+  register: wimpy_subnet_facts
+
+- set_fact:
+    wimpy_vpc_subnets: "{{ wimpy_subnet_facts.results|map(attribute='subnets.0.id')|list }}"
