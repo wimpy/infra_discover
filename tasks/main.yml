@@ -1,10 +1,83 @@
 ---
 
-- include: get_vpc.yml
-  when: wimpy_aws_vpc_id is not defined
+#- include: get_vpc.yml
+#  when: wimpy_aws_vpc_id is not defined
+#
+#- include: get_subnets.yml
+#  when: wimpy_vpc_subnets is not defined
+#
+#- include: get_security_groups.yml
+#  when: wimpy_aws_elb_security_groups is not defined
 
-- include: get_subnets.yml
-  when: wimpy_vpc_subnets is not defined
 
-- include: get_security_groups.yml
-  when: wimpy_aws_elb_security_groups is not defined
+- name: "Looking for AWS resources in your AWS account"
+  cloudformation_facts:
+    profile: "{{ boto_profile | default(omit) }}"
+    region: "{{ wimpy_aws_region }}"
+    stack_name: "base"
+  ignore_errors: yes
+  register: wimpy_cf_facts_base
+
+- name: "Looking for AWS resources related to the {{ wimpy_deployment_environment }} environment"
+  cloudformation_facts:
+    profile: "{{ boto_profile | default(omit) }}"
+    region: "{{ wimpy_aws_region }}"
+    stack_name: "{{ wimpy_deployment_environment }}"
+  ignore_errors: yes
+  register: wimpy_cf_facts_environment
+
+- name: "Looking for AWS resources related to the {{ wimpy_project_name }} application"
+  cloudformation_facts:
+    profile: "{{ boto_profile | default(omit) }}"
+    region: "{{ wimpy_aws_region }}"
+    stack_name: "{{ wimpy_project_name }}"
+  ignore_errors: yes
+  register: wimpy_cf_facts_application
+
+- set_fact:
+    wimpy_aws_s3_bucket: "{{ wimpy_cf_facts_base.ansible_facts.cloudformation.base.stack_outputs['StorageBucket'] }}"
+  when:
+    - wimpy_cf_facts_base.ansible_facts is defined
+    - wimpy_aws_s3_bucket is not defined
+
+- set_fact:
+    wimpy_aws_cloudwatch_bucket: "{{ wimpy_cf_facts_base.ansible_facts.cloudformation.base.stack_outputs['LogBucket'] }}"
+  when:
+    - wimpy_cf_facts_base.ansible_facts is defined
+    - wimpy_aws_cloudwatch_bucket is not defined
+
+- set_fact:
+    wimpy_aws_kms_key: "{{ wimpy_cf_facts_base.ansible_facts.cloudformation.base.stack_outputs['MasterKey'] }}"
+  when:
+    - wimpy_cf_facts_base.ansible_facts is defined
+    - wimpy_aws_kms_key is not defined
+
+- set_fact:
+    wimpy_aws_vpc_id: "{{ wimpy_cf_facts_environment.ansible_facts.cloudformation[wimpy_deployment_environment].stack_outputs['VPC'] }}"
+  when:
+    - wimpy_cf_facts_base.ansible_facts is defined
+    - wimpy_aws_vpc_id is not defined
+
+- set_fact:
+    wimpy_aws_elb_vpc_subnets: "{{ wimpy_cf_facts_environment.ansible_facts.cloudformation[wimpy_deployment_environment].stack_outputs['ELBSubnets'] }}"
+  when:
+    - wimpy_cf_facts_base.ansible_facts is defined
+    - wimpy_aws_elb_vpc_subnets is not defined
+
+- set_fact:
+    wimpy_aws_autoscaling_vpc_subnets: "{{ wimpy_cf_facts_environment.ansible_facts.cloudformation[wimpy_deployment_environment].stack_outputs['AppSubnets'] }}"
+  when:
+    - wimpy_cf_facts_base.ansible_facts is defined
+    - wimpy_aws_autoscaling_vpc_subnets is not defined
+
+- set_fact:
+    wimpy_aws_lc_security_groups: ["{{ wimpy_cf_facts_application.ansible_facts.cloudformation[wimpy_project_name]['stack_outputs']['InstanceSecurityGroup'] }}"]
+  when:
+    - wimpy_aws_lc_security_groups is not defined
+    - wimpy_cf_facts_application.ansible_facts is defined
+
+- set_fact:
+    wimpy_aws_elb_security_groups: ["{{ wimpy_cf_facts_application.ansible_facts.cloudformation[wimpy_project_name]['stack_outputs']['LoadBalancerSecurityGroup'] }}"]
+  when:
+    - wimpy_aws_elb_security_groups is not defined
+    - wimpy_cf_facts_application.ansible_facts is defined
